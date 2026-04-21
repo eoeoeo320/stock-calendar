@@ -3,642 +3,788 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>주식 실현수익 캘린더</title>
+<title>부자 되보자고</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
+.lock-screen {
+  position: fixed; inset: 0; background: var(--bg);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 999; padding: 20px;
+}
+.lock-card {
+  background: var(--surface); border: 1px solid var(--border2);
+  border-radius: 20px; padding: 36px 32px; width: 100%; max-width: 320px;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.1); text-align: center;
+}
+.lock-icon { font-size: 36px; margin-bottom: 12px; }
+.lock-title { font-size: 17px; font-weight: 700; margin-bottom: 6px; }
+.lock-sub { font-size: 12px; color: var(--text3); margin-bottom: 22px; }
+.lock-input {
+  width: 100%; padding: 12px 14px; font-size: 18px; font-family: var(--mono);
+  background: var(--surface2); border: 1px solid var(--border2);
+  border-radius: 10px; color: var(--text); outline: none; text-align: center;
+  letter-spacing: 4px; margin-bottom: 10px;
+}
+.lock-input:focus { border-color: var(--accent); }
+.lock-btn {
+  width: 100%; padding: 11px; background: var(--accent); color: #fff;
+  border: none; border-radius: 10px; font-size: 14px; font-weight: 500;
+  cursor: pointer; font-family: var(--sans); transition: background .15s;
+}
+.lock-btn:hover { background: #1d4ed8; }
+.lock-error { font-size: 12px; color: var(--red); margin-top: 8px; min-height: 18px; }
 :root {
-  --bg: #f5f6f8;
-  --surface: #ffffff;
-  --surface2: #f0f1f4;
-  --surface3: #e4e6eb;
-  --border: rgba(0,0,0,0.08);
-  --border2: rgba(0,0,0,0.15);
-  --text: #1a1a2e;
-  --text2: #555570;
-  --text3: #9999b0;
-  --accent: #2563eb;
-  --green: #16a34a;
-  --green-dim: rgba(22,163,74,0.08);
-  --green-border: rgba(22,163,74,0.25);
-  --amber: #d97706;
-  --red: #dc2626;
-  --red-dim: rgba(220,38,38,0.07);
-  --red-border: rgba(220,38,38,0.2);
-  --mono: 'DM Mono', monospace;
-  --sans: 'Noto Sans KR', sans-serif;
+  --bg: #f5f6f8; --surface: #ffffff; --surface2: #f0f1f4; --surface3: #e4e6eb;
+  --border: rgba(0,0,0,0.08); --border2: rgba(0,0,0,0.15);
+  --text: #1a1a2e; --text2: #555570; --text3: #9999b0;
+  --accent: #2563eb; --green: #16a34a;
+  --green-dim: rgba(22,163,74,0.08); --green-border: rgba(22,163,74,0.25);
+  --amber: #d97706; --amber-dim: rgba(217,119,6,0.08);
+  --red: #dc2626; --red-dim: rgba(220,38,38,0.08); --red-border: rgba(220,38,38,0.25);
+  --mono: 'DM Mono', monospace; --sans: 'Noto Sans KR', sans-serif;
 }
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 14px; }
-body { min-height: 100vh; padding: 20px 16px 60px; max-width: 1000px; margin: 0 auto; }
-
-.app-header {
-  display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: 20px; padding-bottom: 16px;
-  border-bottom: 1px solid var(--border);
-  flex-wrap: wrap; gap: 10px;
-}
+body { min-height: 100vh; padding: 20px 16px 60px; max-width: 1060px; margin: 0 auto; }
+.app-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 10px; }
 .app-title { font-size: 17px; font-weight: 700; letter-spacing: -0.3px; }
 .app-title span { color: var(--accent); }
-.sync-status {
-  display: flex; align-items: center; gap: 6px;
-  font-size: 11px; color: var(--text3);
-}
-.sync-dot {
-  width: 7px; height: 7px; border-radius: 50%;
-  background: var(--text3); transition: background .3s;
-}
+.header-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.sync-status { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text3); }
+.sync-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text3); transition: background .3s; }
 .sync-dot.ok { background: var(--green); }
 .sync-dot.syncing { background: var(--amber); animation: pulse 1s infinite; }
 .sync-dot.err { background: var(--red); }
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
-
-.stats-grid {
-  display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
-  margin-bottom: 12px;
-}
-.stat-card {
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: 12px; padding: 13px 15px;
-}
+.tabs { display: flex; gap: 4px; margin-bottom: 20px; background: var(--surface2); padding: 4px; border-radius: 10px; width: fit-content; }
+.tab-btn { padding: 7px 18px; border-radius: 7px; border: none; background: none; font-size: 13px; font-weight: 500; color: var(--text2); cursor: pointer; font-family: var(--sans); transition: all .15s; }
+.tab-btn.active { background: var(--surface); color: var(--text); box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+.tab-btn:hover:not(.active) { color: var(--text); }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+.stats-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 12px; }
+.stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 13px 15px; }
 .stat-label { font-size: 10px; color: var(--text3); margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.5px; }
-.stat-value { font-family: var(--mono); font-size: 17px; font-weight: 500; color: var(--text); }
+.stat-value { font-family: var(--mono); font-size: 16px; font-weight: 500; color: var(--text); }
 .stat-value.ok { color: var(--green); }
 .stat-value.warn { color: var(--amber); }
 .stat-value.bad { color: var(--red); }
 .stat-sub { font-size: 10px; color: var(--text3); margin-top: 3px; }
-
-.progress-wrap {
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: 12px; padding: 13px 16px; margin-bottom: 18px;
-  display: flex; align-items: center; gap: 14px;
-}
+.progress-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 13px 16px; margin-bottom: 18px; display: flex; align-items: center; gap: 14px; }
 .progress-label { font-size: 11px; color: var(--text2); white-space: nowrap; }
 .progress-track { flex: 1; height: 6px; background: var(--surface3); border-radius: 3px; overflow: hidden; }
 .progress-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--accent), var(--green)); transition: width .5s ease; }
 .progress-pct { font-family: var(--mono); font-size: 12px; color: var(--text2); min-width: 50px; text-align: right; }
-
-.cal-nav {
-  display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;
-}
-.cal-nav-btn {
-  background: var(--surface2); border: 1px solid var(--border);
-  color: var(--text2); padding: 7px 16px; border-radius: 8px;
-  cursor: pointer; font-size: 13px; font-family: var(--sans); transition: all .15s;
-}
+.cal-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.cal-nav-btn { background: var(--surface2); border: 1px solid var(--border); color: var(--text2); padding: 7px 16px; border-radius: 8px; cursor: pointer; font-size: 13px; font-family: var(--sans); transition: all .15s; }
 .cal-nav-btn:hover { background: var(--surface3); color: var(--text); }
 .cal-month-title { font-size: 16px; font-weight: 700; letter-spacing: -0.3px; }
-
-.cal-wrap { display: grid; grid-template-columns: repeat(7, 1fr) 160px; gap: 4px; }
-.cal-header-cell {
-  text-align: center; padding: 7px 4px; font-size: 11px;
-  font-weight: 500; color: var(--text3); letter-spacing: 0.5px;
-}
+.cal-wrap { display: grid; grid-template-columns: repeat(7, 1fr) 165px; gap: 4px; }
+.cal-header-cell { text-align: center; padding: 7px 4px; font-size: 11px; font-weight: 500; color: var(--text3); letter-spacing: 0.5px; }
 .cal-header-cell.sun { color: #e03e3e; }
 .cal-header-cell.sat { color: #2563eb; }
-.cal-week-summary-header {
-  text-align: center; padding: 7px 4px; font-size: 11px; font-weight: 500; color: var(--text3);
-}
-
-.day-cell {
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: 10px; padding: 8px 9px; min-height: 74px;
-  display: flex; flex-direction: column; cursor: pointer;
-  transition: border-color .15s, background .15s;
-}
+.cal-week-summary-header { text-align: center; padding: 7px 4px; font-size: 11px; font-weight: 500; color: var(--text3); }
+.day-cell { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 8px 9px; min-height: 80px; display: flex; flex-direction: column; cursor: pointer; transition: border-color .15s, background .15s; position: relative; }
 .day-cell:hover { border-color: var(--border2); background: var(--surface2); }
 .day-cell.empty { background: transparent; border-color: transparent; cursor: default; pointer-events: none; }
 .day-cell.today { border-color: var(--accent); border-width: 1.5px; }
 .day-cell.pass { background: var(--green-dim); border-color: var(--green-border); }
 .day-cell.pass:hover { background: rgba(22,163,74,0.13); }
 .day-cell.dead { background: rgba(37,99,235,0.06); border-color: rgba(37,99,235,0.2); }
-.day-cell.fail { background: var(--red-dim); border-color: var(--red-border); }
-
-.day-num { font-size: 12px; font-weight: 500; color: var(--text2); margin-bottom: 4px; }
+.day-cell.fail { background: rgba(220,38,38,0.1); border-color: rgba(220,38,38,0.3); }
+.day-cell.loss-only { background: rgba(220,38,38,0.06); border-color: rgba(220,38,38,0.2); }
+.day-num { font-size: 12px; font-weight: 500; color: var(--text2); margin-bottom: 3px; }
 .day-num.sun { color: #e03e3e; }
 .day-num.sat { color: #2563eb; }
-.day-num.today-dot::after {
-  content: ''; display: inline-block; width: 5px; height: 5px;
-  background: var(--accent); border-radius: 50%; margin-left: 5px; vertical-align: middle;
-}
-.day-profit { font-family: var(--mono); font-size: 12px; font-weight: 500; color: var(--text); line-height: 1.3; }
-.day-status { margin-top: auto; font-size: 10px; }
+.day-num.today-dot::after { content: ''; display: inline-block; width: 5px; height: 5px; background: var(--accent); border-radius: 50%; margin-left: 5px; vertical-align: middle; }
+.day-profit { font-family: var(--mono); font-size: 12px; font-weight: 500; color: var(--green); line-height: 1.3; }
+.day-loss { font-family: var(--mono); font-size: 11px; font-weight: 500; color: var(--red); line-height: 1.3; }
+.day-net { font-family: var(--mono); font-size: 12px; font-weight: 700; line-height: 1.3; }
+.day-net.pos { color: var(--green); }
+.day-net.neg { color: var(--red); }
+.day-memo { font-size: 9px; color: var(--text3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+.day-status { margin-top: auto; font-size: 10px; padding-top: 2px; }
 .day-status.ok { color: var(--green); }
 .day-status.mid { color: var(--accent); }
 .day-status.bad { color: var(--red); }
 .day-hint { font-size: 10px; color: var(--text3); margin-top: auto; }
-
-.week-summary {
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: 10px; padding: 9px 11px;
-  display: flex; flex-direction: column; gap: 6px;
-}
+.week-summary { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 9px 11px; display: flex; flex-direction: column; gap: 5px; }
 .ws-total-label { font-size: 10px; color: var(--text3); }
-.ws-total-val { font-family: var(--mono); font-size: 14px; font-weight: 500; color: var(--text); }
+.ws-total-val { font-family: var(--mono); font-size: 14px; font-weight: 500; }
+.ws-total-val.pos { color: var(--green); }
+.ws-total-val.neg { color: var(--red); }
+.ws-total-val.zero { color: var(--text); }
+.ws-detail { font-size: 10px; color: var(--text3); }
 .ws-bar-wrap { display: flex; flex-direction: column; gap: 4px; }
 .ws-bar-row { display: flex; align-items: center; gap: 5px; }
 .ws-bar-label { font-size: 9px; color: var(--text3); min-width: 22px; }
 .ws-bar-track { flex: 1; height: 4px; background: var(--surface3); border-radius: 2px; overflow: hidden; }
 .ws-bar-fill { height: 100%; border-radius: 2px; transition: width .3s; }
 .ws-bar-fill.target { background: var(--green); }
-.ws-bar-fill.dead { background: var(--accent); }
+.ws-bar-fill.dead-bar { background: var(--accent); }
 .ws-bar-fill.over { background: var(--amber); }
 .ws-bar-pct { font-size: 9px; color: var(--text3); min-width: 26px; text-align: right; font-family: var(--mono); }
 .ws-remain { font-size: 10px; color: var(--text3); }
 .ws-remain.ok { color: var(--green); font-weight: 500; }
-
-.modal-backdrop {
-  position: fixed; inset: 0; background: rgba(0,0,0,0.3);
-  display: flex; align-items: center; justify-content: center;
-  z-index: 100; backdrop-filter: blur(2px); padding: 20px;
-}
-.modal {
-  background: var(--surface); border: 1px solid var(--border2);
-  border-radius: 16px; padding: 22px; width: 100%; max-width: 300px;
-  box-shadow: 0 8px 40px rgba(0,0,0,0.15);
-}
+.monthly-stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+.monthly-stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+.msc-title { font-size: 12px; color: var(--text3); margin-bottom: 10px; font-weight: 500; }
+.msc-row { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px solid var(--border); }
+.msc-row:last-child { border-bottom: none; }
+.msc-label { font-size: 12px; color: var(--text2); }
+.msc-val { font-family: var(--mono); font-size: 13px; font-weight: 500; }
+.msc-val.ok { color: var(--green); }
+.msc-val.bad { color: var(--red); }
+.msc-val.warn { color: var(--amber); }
+.heatmap-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px; margin-bottom: 20px; }
+.heatmap-title { font-size: 13px; font-weight: 500; margin-bottom: 14px; }
+.heatmap-months { display: flex; gap: 6px; flex-wrap: wrap; }
+.heatmap-month { flex: 1; min-width: 60px; }
+.heatmap-month-label { font-size: 10px; color: var(--text3); text-align: center; margin-bottom: 4px; }
+.heatmap-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+.heatmap-day { aspect-ratio: 1; border-radius: 2px; background: var(--surface3); cursor: pointer; transition: transform .1s; }
+.heatmap-day:hover { transform: scale(1.3); }
+.heatmap-day.level-0 { background: var(--surface3); }
+.heatmap-day.level-1 { background: rgba(22,163,74,0.2); }
+.heatmap-day.level-2 { background: rgba(22,163,74,0.4); }
+.heatmap-day.level-3 { background: rgba(22,163,74,0.65); }
+.heatmap-day.level-4 { background: rgba(22,163,74,0.9); }
+.heatmap-day.loss { background: rgba(220,38,38,0.4); }
+.heatmap-day.empty { background: transparent; }
+.heatmap-legend { display: flex; align-items: center; gap: 5px; margin-top: 10px; font-size: 10px; color: var(--text3); }
+.heatmap-legend-box { width: 10px; height: 10px; border-radius: 2px; }
+.settings-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; max-width: 440px; }
+.settings-title { font-size: 14px; font-weight: 700; margin-bottom: 16px; }
+.settings-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.settings-row:last-of-type { border-bottom: none; }
+.settings-label { font-size: 13px; color: var(--text); }
+.settings-sub { font-size: 11px; color: var(--text3); margin-top: 2px; }
+.settings-input { font-family: var(--mono); font-size: 13px; padding: 6px 10px; border: 1px solid var(--border2); border-radius: 7px; background: var(--surface2); color: var(--text); width: 140px; text-align: right; outline: none; }
+.settings-input:focus { border-color: var(--accent); }
+.settings-save-btn { margin-top: 16px; width: 100%; padding: 10px; background: var(--accent); color: #fff; border: none; border-radius: 9px; font-size: 14px; font-weight: 500; cursor: pointer; font-family: var(--sans); transition: background .15s; }
+.settings-save-btn:hover { background: #1d4ed8; }
+.modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; z-index: 100; backdrop-filter: blur(2px); padding: 20px; }
+.modal { background: var(--surface); border: 1px solid var(--border2); border-radius: 16px; padding: 22px; width: 100%; max-width: 320px; box-shadow: 0 8px 40px rgba(0,0,0,0.15); }
 .modal-title { font-size: 15px; font-weight: 700; margin-bottom: 3px; }
-.modal-sub { font-size: 11px; color: var(--text3); margin-bottom: 16px; }
-.modal-targets { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 14px; }
-.modal-target-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 7px 9px; }
-.modal-target-label { font-size: 10px; color: var(--text3); margin-bottom: 2px; }
-.modal-target-val { font-family: var(--mono); font-size: 12px; color: var(--text2); }
-.modal input {
-  width: 100%; padding: 11px 12px; font-size: 16px; font-family: var(--mono);
-  background: var(--surface2); border: 1px solid var(--border2);
-  border-radius: 10px; color: var(--text); outline: none; margin-bottom: 6px;
-}
-.modal input:focus { border-color: var(--accent); }
-.modal-hint { font-size: 10px; color: var(--text3); margin-bottom: 12px; }
-.modal-preview {
-  background: var(--surface2); border-radius: 8px; padding: 10px 12px;
-  margin-bottom: 14px; min-height: 34px; display: flex; align-items: center;
-}
+.modal-sub { font-size: 11px; color: var(--text3); margin-bottom: 14px; }
+.modal-field-label { font-size: 11px; color: var(--text2); margin-bottom: 5px; font-weight: 500; }
+.modal-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+.modal input, .modal textarea { width: 100%; padding: 10px 12px; font-size: 15px; font-family: var(--mono); background: var(--surface2); border: 1px solid var(--border2); border-radius: 10px; color: var(--text); outline: none; }
+.modal textarea { font-size: 13px; font-family: var(--sans); resize: none; height: 60px; }
+.modal input:focus, .modal textarea:focus { border-color: var(--accent); }
+.modal-field-group { margin-bottom: 10px; }
+.modal-hint { font-size: 10px; color: var(--text3); margin-bottom: 10px; }
+.modal-preview { background: var(--surface2); border-radius: 8px; padding: 10px 12px; margin-bottom: 14px; min-height: 34px; display: flex; align-items: center; }
 .modal-preview-text { font-size: 12px; color: var(--text2); }
 .modal-preview-text.ok { color: var(--green); }
 .modal-preview-text.mid { color: var(--accent); }
 .modal-preview-text.bad { color: var(--red); }
+.modal-preview-text.loss { color: var(--red); }
 .modal-btns { display: flex; gap: 7px; }
-.modal-btns button {
-  flex: 1; padding: 9px; border-radius: 8px; font-size: 13px; font-weight: 500;
-  cursor: pointer; border: 1px solid var(--border2); background: var(--surface2);
-  color: var(--text2); font-family: var(--sans); transition: all .15s;
-}
+.modal-btns button { flex: 1; padding: 9px; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; border: 1px solid var(--border2); background: var(--surface2); color: var(--text2); font-family: var(--sans); transition: all .15s; }
 .modal-btns button:hover { background: var(--surface3); color: var(--text); }
 .modal-btns button.confirm { background: var(--accent); border-color: var(--accent); color: #fff; }
 .modal-btns button.confirm:hover { background: #1d4ed8; }
 .modal-btns button.delete { border-color: var(--red-border); color: var(--red); }
 .modal-btns button.delete:hover { background: var(--red-dim); }
-
-.loading-overlay {
-  position: fixed; inset: 0; background: var(--bg);
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  z-index: 200; gap: 14px;
-}
-.loading-spinner {
-  width: 32px; height: 32px; border: 2px solid var(--surface3);
-  border-top-color: var(--accent); border-radius: 50%;
-  animation: spin .7s linear infinite;
-}
+.loading-overlay { position: fixed; inset: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 200; gap: 14px; }
+.loading-spinner { width: 32px; height: 32px; border: 2px solid var(--surface3); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .loading-text { font-size: 13px; color: var(--text3); }
-
-.toast {
-  position: fixed; bottom: 24px; right: 16px; z-index: 300;
-  background: var(--surface); border: 1px solid var(--border2);
-  border-radius: 10px; padding: 10px 16px; font-size: 13px;
-  color: var(--text); box-shadow: 0 4px 20px rgba(0,0,0,0.12);
-  animation: toastIn .2s ease; pointer-events: none;
-}
+.toast { position: fixed; bottom: 24px; right: 16px; z-index: 300; background: var(--surface); border: 1px solid var(--border2); border-radius: 10px; padding: 10px 16px; font-size: 13px; color: var(--text); box-shadow: 0 4px 20px rgba(0,0,0,0.12); animation: toastIn .2s ease; pointer-events: none; }
 @keyframes toastIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
-
 ::-webkit-scrollbar { width: 5px; }
 ::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 3px; }
-
-@media (max-width: 680px) {
-  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+@media (max-width: 700px) {
+  .stats-grid { grid-template-columns: repeat(3, 1fr); }
   .cal-wrap { grid-template-columns: repeat(7, 1fr); }
   .cal-week-summary-header, .week-summary { display: none; }
-  .stat-value { font-size: 15px; }
+  .monthly-stats-grid { grid-template-columns: 1fr; }
 }
 </style>
 </head>
 <body>
 
-<div class="loading-overlay" id="loading">
+<div class="lock-screen" id="lock-screen">
+  <div class="lock-card">
+    <div class="lock-icon">🔒</div>
+    <div class="lock-title">주식 수익 캘린더</div>
+    <div class="lock-sub">비밀번호를 입력하세요</div>
+    <input class="lock-input" type="password" id="lock-input" placeholder="••••" maxlength="20" />
+    <button class="lock-btn" onclick="checkPassword()">입력</button>
+    <div class="lock-error" id="lock-error"></div>
+  </div>
+</div>
+
+<div class="loading-overlay" id="loading" style="display:none">
   <div class="loading-spinner"></div>
   <div class="loading-text">데이터 불러오는 중...</div>
 </div>
 
 <div class="app-header">
   <div class="app-title">📈 주식 실현수익 <span>캘린더</span></div>
-  <div class="sync-status">
-    <div class="sync-dot" id="sync-dot"></div>
-    <span id="sync-text">연결 중...</span>
+  <div class="header-right">
+    <div class="sync-status">
+      <div class="sync-dot" id="sync-dot"></div>
+      <span id="sync-text">대기 중</span>
+    </div>
   </div>
 </div>
 
-<div class="stats-grid">
-  <div class="stat-card">
-    <div class="stat-label">월 누적</div>
-    <div class="stat-value" id="s-monthly">0원</div>
-    <div class="stat-sub" id="s-monthly-sub">이번 달</div>
+<div class="tabs">
+  <button class="tab-btn active" onclick="switchTab('calendar')">캘린더</button>
+  <button class="tab-btn" onclick="switchTab('stats')">월별 통계</button>
+  <button class="tab-btn" onclick="switchTab('heatmap')">연간 히트맵</button>
+  <button class="tab-btn" onclick="switchTab('settings')">목표 설정</button>
+</div>
+
+<div class="tab-content active" id="tab-calendar">
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-label">월 순수익</div>
+      <div class="stat-value" id="s-monthly">0원</div>
+      <div class="stat-sub" id="s-monthly-sub">수익 0 / 손실 0</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">이번 주 순수익</div>
+      <div class="stat-value" id="s-weekly">0원</div>
+      <div class="stat-sub">주 목표 <span id="sub-goal-week">500만</span></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">주 목표 잔여</div>
+      <div class="stat-value warn" id="s-week-remain">500만원</div>
+      <div class="stat-sub">데드라인 <span id="sub-dead-week">300만</span></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">오늘 수익</div>
+      <div class="stat-value" id="s-today">0원</div>
+      <div class="stat-sub">목표 <span id="sub-goal-day">100만</span></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">1억 잔여</div>
+      <div class="stat-value bad" id="s-final">1억원</div>
+      <div class="stat-sub" id="s-final-sub">누적 0원</div>
+    </div>
   </div>
-  <div class="stat-card">
-    <div class="stat-label">이번 주</div>
-    <div class="stat-value" id="s-weekly">0원</div>
-    <div class="stat-sub">주 목표 500만</div>
+  <div class="progress-wrap">
+    <div class="progress-label">최종 목표 달성률</div>
+    <div class="progress-track"><div class="progress-fill" id="pb" style="width:0%"></div></div>
+    <div class="progress-pct" id="pb-pct">0.00%</div>
   </div>
-  <div class="stat-card">
-    <div class="stat-label">주 목표 잔여</div>
-    <div class="stat-value warn" id="s-week-remain">500만원</div>
-    <div class="stat-sub">데드라인 300만</div>
+  <div class="cal-nav">
+    <button class="cal-nav-btn" onclick="changeMonth(-1)">← 이전달</button>
+    <div class="cal-month-title" id="month-title"></div>
+    <button class="cal-nav-btn" onclick="changeMonth(1)">다음달 →</button>
   </div>
-  <div class="stat-card">
-    <div class="stat-label">1억 잔여</div>
-    <div class="stat-value bad" id="s-final">1억원</div>
-    <div class="stat-sub" id="s-final-sub">누적 0원</div>
+  <div class="cal-wrap" id="cal-wrap"></div>
+</div>
+
+<div class="tab-content" id="tab-stats">
+  <div class="cal-nav">
+    <button class="cal-nav-btn" onclick="changeStatsMonth(-1)">← 이전달</button>
+    <div class="cal-month-title" id="stats-month-title"></div>
+    <button class="cal-nav-btn" onclick="changeStatsMonth(1)">다음달 →</button>
+  </div>
+  <div class="monthly-stats-grid" id="monthly-stats-grid"></div>
+</div>
+
+<div class="tab-content" id="tab-heatmap">
+  <div class="cal-nav">
+    <button class="cal-nav-btn" onclick="changeHeatmapYear(-1)">← 이전년도</button>
+    <div class="cal-month-title" id="heatmap-year-title"></div>
+    <button class="cal-nav-btn" onclick="changeHeatmapYear(1)">다음년도 →</button>
+  </div>
+  <div class="heatmap-wrap">
+    <div class="heatmap-title">연간 수익 히트맵</div>
+    <div class="heatmap-months" id="heatmap-months"></div>
+    <div class="heatmap-legend">
+      <span>손실</span>
+      <div class="heatmap-legend-box" style="background:rgba(220,38,38,0.4)"></div>
+      <span style="margin-left:8px">없음</span>
+      <div class="heatmap-legend-box" style="background:var(--surface3)"></div>
+      <div class="heatmap-legend-box" style="background:rgba(22,163,74,0.2)"></div>
+      <div class="heatmap-legend-box" style="background:rgba(22,163,74,0.4)"></div>
+      <div class="heatmap-legend-box" style="background:rgba(22,163,74,0.65)"></div>
+      <div class="heatmap-legend-box" style="background:rgba(22,163,74,0.9)"></div>
+      <span>고수익</span>
+    </div>
   </div>
 </div>
 
-<div class="progress-wrap">
-  <div class="progress-label">최종 목표 달성률</div>
-  <div class="progress-track"><div class="progress-fill" id="pb" style="width:0%"></div></div>
-  <div class="progress-pct" id="pb-pct">0.00%</div>
+<div class="tab-content" id="tab-settings">
+  <div class="settings-wrap">
+    <div class="settings-title">목표 금액 설정</div>
+    <div class="settings-row">
+      <div><div class="settings-label">일 기본 목표</div><div class="settings-sub">이 금액 이상이면 목표 달성</div></div>
+      <input class="settings-input" id="set-goal-day" type="number" step="10000">
+    </div>
+    <div class="settings-row">
+      <div><div class="settings-label">일 최소 데드라인</div><div class="settings-sub">이 금액 미만이면 빨간색</div></div>
+      <input class="settings-input" id="set-dead-day" type="number" step="10000">
+    </div>
+    <div class="settings-row">
+      <div><div class="settings-label">주 기본 목표</div><div class="settings-sub">주간 목표 금액</div></div>
+      <input class="settings-input" id="set-goal-week" type="number" step="100000">
+    </div>
+    <div class="settings-row">
+      <div><div class="settings-label">주 최소 데드라인</div><div class="settings-sub">주간 최소 달성 금액</div></div>
+      <input class="settings-input" id="set-dead-week" type="number" step="100000">
+    </div>
+    <div class="settings-row">
+      <div><div class="settings-label">최종 목표</div><div class="settings-sub">달성률 기준 금액</div></div>
+      <input class="settings-input" id="set-goal-final" type="number" step="1000000">
+    </div>
+    <button class="settings-save-btn" onclick="saveSettings()">저장</button>
+  </div>
 </div>
-
-<div class="cal-nav">
-  <button class="cal-nav-btn" onclick="changeMonth(-1)">← 이전달</button>
-  <div class="cal-month-title" id="month-title"></div>
-  <button class="cal-nav-btn" onclick="changeMonth(1)">다음달 →</button>
-</div>
-
-<div class="cal-wrap" id="cal-wrap"></div>
 
 <script>
 const SUPABASE_URL = 'https://eacvkiabkjxkguxbagnx.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVhY3ZraWFia2p4a2d1eGJhZ254Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2OTExMTUsImV4cCI6MjA5MjI2NzExNX0.Pyo7fWpmYZJ0gnAsDP44yaC__vM8Kj5pOyrZxYawEL0';
+const PASSWORD = '1234'; // ← 비밀번호 여기서 변경
+const SESSION_KEY = 'cal-auth';
 
-const GOAL_DAY = 1000000, DEAD_DAY = 200000;
-const GOAL_WEEK = 5000000, DEAD_WEEK = 3000000;
-const GOAL_FINAL = 100000000;
-
+let settings = { goalDay:1000000, deadDay:200000, goalWeek:5000000, deadWeek:3000000, goalFinal:100000000 };
 let data = {};
 const today = new Date();
 let curY = today.getFullYear(), curM = today.getMonth();
+let statsY = curY, statsM = curM;
+let heatmapY = curY;
 
-async function sbFetch(path, options = {}) {
-  const res = await fetch(SUPABASE_URL + '/rest/v1/' + path, {
+async function sbFetch(path, options={}) {
+  return fetch(SUPABASE_URL+'/rest/v1/'+path, {
     ...options,
-    headers: {
-      'apikey': SUPABASE_KEY,
-      'Authorization': 'Bearer ' + SUPABASE_KEY,
-      'Content-Type': 'application/json',
-      'Prefer': 'return=minimal',
-      ...options.headers
-    }
+    headers: { 'apikey':SUPABASE_KEY, 'Authorization':'Bearer '+SUPABASE_KEY, 'Content-Type':'application/json', ...options.headers }
   });
-  return res;
 }
 
 async function loadAll() {
-  setSyncStatus('syncing', '불러오는 중...');
+  setSyncStatus('syncing','불러오는 중...');
   try {
-    const res = await sbFetch('profits?select=date,amount');
+    const res = await sbFetch('profits?select=date,amount,loss,memo');
     if (!res.ok) throw new Error();
     const rows = await res.json();
     data = {};
-    rows.forEach(r => { data[r.date] = r.amount; });
-    setSyncStatus('ok', '동기화됨');
-    return true;
-  } catch(e) {
-    setSyncStatus('err', '연결 실패');
-    return false;
-  }
+    rows.forEach(r => { data[r.date] = { profit: r.amount||0, loss: r.loss||0, memo: r.memo||'' }; });
+    setSyncStatus('ok','동기화됨');
+  } catch(e) { setSyncStatus('err','연결 실패'); }
 }
 
-async function upsertEntry(dateKey, amount) {
-  setSyncStatus('syncing', '저장 중...');
+async function upsertEntry(dateKey, profit, loss, memo) {
+  setSyncStatus('syncing','저장 중...');
   try {
-    const res = await fetch(SUPABASE_URL + '/rest/v1/profits', {
-      method: 'POST',
-      headers: {
-        'apikey': SUPABASE_KEY,
-        'Authorization': 'Bearer ' + SUPABASE_KEY,
-        'Content-Type': 'application/json',
-        'Prefer': 'resolution=merge-duplicates,return=minimal'
-      },
-      body: JSON.stringify({ date: dateKey, amount })
+    const res = await fetch(SUPABASE_URL+'/rest/v1/profits', {
+      method:'POST',
+      headers: { 'apikey':SUPABASE_KEY, 'Authorization':'Bearer '+SUPABASE_KEY, 'Content-Type':'application/json', 'Prefer':'resolution=merge-duplicates,return=minimal' },
+      body: JSON.stringify({ date:dateKey, amount:profit, loss, memo })
     });
-    if (!res.ok) { const t = await res.text(); console.error('upsert error:', res.status, t); throw new Error(); }
-    setSyncStatus('ok', '저장됨');
-    return true;
-  } catch(e) {
-    setSyncStatus('err', '저장 실패');
-    return false;
-  }
+    if (!res.ok) throw new Error(await res.text());
+    setSyncStatus('ok','저장됨'); return true;
+  } catch(e) { setSyncStatus('err','저장 실패'); return false; }
 }
 
-async function deleteEntry(dateKey) {
-  setSyncStatus('syncing', '삭제 중...');
+async function deleteEntryDB(dateKey) {
+  setSyncStatus('syncing','삭제 중...');
   try {
-    const res = await sbFetch('profits?date=eq.' + dateKey, { method: 'DELETE' });
+    const res = await sbFetch('profits?date=eq.'+dateKey, { method:'DELETE' });
     if (!res.ok) throw new Error();
-    setSyncStatus('ok', '동기화됨');
-    return true;
-  } catch(e) {
-    setSyncStatus('err', '삭제 실패');
-    return false;
-  }
+    setSyncStatus('ok','동기화됨'); return true;
+  } catch(e) { setSyncStatus('err','삭제 실패'); return false; }
 }
 
 function setSyncStatus(state, text) {
-  const dot = document.getElementById('sync-dot');
-  dot.className = 'sync-dot ' + state;
+  document.getElementById('sync-dot').className = 'sync-dot '+state;
   document.getElementById('sync-text').textContent = text;
 }
 
-function fmt(n, short = true) {
+function fmt(n, short=true) {
   if (!n) return '0원';
-  if (short && n >= 100000000) return (n / 100000000).toFixed(2) + '억원';
-  if (short && n >= 10000) return Math.round(n / 10000) + '만원';
-  return n.toLocaleString() + '원';
+  const abs = Math.abs(n);
+  let str;
+  if (short && abs>=100000000) str = (abs/100000000).toFixed(2)+'억원';
+  else if (short && abs>=10000) str = Math.round(abs/10000)+'만원';
+  else str = abs.toLocaleString()+'원';
+  return n<0 ? '-'+str : str;
 }
 
 function getWeekKey(dateStr) {
   const dt = new Date(dateStr);
-  const day = dt.getDay() || 7;
-  dt.setDate(dt.getDate() + 4 - day);
+  const day = dt.getDay()||7;
+  dt.setDate(dt.getDate()+4-day);
   const y = dt.getFullYear();
-  const jan4 = new Date(y, 0, 4);
-  return y + '-W' + Math.ceil(((dt - jan4) / 86400000 + 1) / 7);
+  return y+'-W'+Math.ceil(((dt-new Date(y,0,4))/86400000+1)/7);
 }
 
-function getTotal(filterFn) {
-  return Object.entries(data).filter(([k]) => filterFn(k)).reduce((a, [, v]) => a + v, 0);
-}
-function getAllTotal() { return getTotal(() => true); }
-function getMonthTotal(y, m) {
-  const prefix = y + '-' + (m + 1).toString().padStart(2, '0');
-  return getTotal(k => k.startsWith(prefix));
-}
-function getWeekTotal(wk) { return getTotal(k => getWeekKey(k) === wk); }
+function netOf(d) { return (d.profit||0)-(d.loss||0); }
+function getNetTotal(fn) { return Object.entries(data).filter(([k])=>fn(k)).reduce((a,[,v])=>a+netOf(v),0); }
+function getProfitTotal(fn) { return Object.entries(data).filter(([k])=>fn(k)).reduce((a,[,v])=>a+(v.profit||0),0); }
+function getLossTotal(fn) { return Object.entries(data).filter(([k])=>fn(k)).reduce((a,[,v])=>a+(v.loss||0),0); }
+function getAllNet() { return getNetTotal(()=>true); }
+function getMonthNet(y,m) { const p=y+'-'+(m+1).toString().padStart(2,'0'); return getNetTotal(k=>k.startsWith(p)); }
+function getWeekNet(wk) { return getNetTotal(k=>getWeekKey(k)===wk); }
 
 function renderStats() {
-  const monthly = getMonthTotal(curY, curM);
-  const todayWk = getWeekKey(today.toISOString().slice(0, 10));
-  const weekly = getWeekTotal(todayWk);
-  const allTime = getAllTotal();
-  const remain = Math.max(0, GOAL_FINAL - allTime);
-  const weekRemain = Math.max(0, GOAL_WEEK - weekly);
-  const pct = Math.min(100, allTime / GOAL_FINAL * 100);
+  const todayKey = today.toISOString().slice(0,10);
+  const todayWk = getWeekKey(todayKey);
+  const monthly = getMonthNet(curY,curM);
+  const mp = k=>k.startsWith(curY+'-'+(curM+1).toString().padStart(2,'0'));
+  const monthProfit = getProfitTotal(mp), monthLoss = getLossTotal(mp);
+  const weekly = getWeekNet(todayWk);
+  const todayNet = netOf(data[todayKey]||{});
+  const allTime = getAllNet();
+  const remain = Math.max(0,settings.goalFinal-allTime);
+  const weekRemain = Math.max(0,settings.goalWeek-weekly);
+  const pct = Math.min(100,allTime/settings.goalFinal*100);
 
   const sm = document.getElementById('s-monthly');
   sm.textContent = fmt(monthly);
-  sm.className = 'stat-value' + (monthly >= GOAL_WEEK ? ' ok' : '');
+  sm.className = 'stat-value'+(monthly>=settings.goalWeek?' ok':monthly<0?' bad':'');
+  document.getElementById('s-monthly-sub').textContent = '수익 '+fmt(monthProfit)+' / 손실 '+fmt(monthLoss);
 
   const sw = document.getElementById('s-weekly');
   sw.textContent = fmt(weekly);
-  sw.className = 'stat-value' + (weekly >= GOAL_WEEK ? ' ok' : weekly >= DEAD_WEEK ? ' warn' : ' bad');
+  sw.className = 'stat-value'+(weekly>=settings.goalWeek?' ok':weekly>=settings.deadWeek?' warn':' bad');
 
   const swr = document.getElementById('s-week-remain');
-  swr.textContent = weekRemain > 0 ? fmt(weekRemain) : '달성!';
-  swr.className = 'stat-value' + (weekRemain === 0 ? ' ok' : weekly >= DEAD_WEEK ? ' warn' : ' bad');
+  swr.textContent = weekRemain>0 ? fmt(weekRemain) : '달성!';
+  swr.className = 'stat-value'+(weekRemain===0?' ok':weekly>=settings.deadWeek?' warn':' bad');
+
+  const st = document.getElementById('s-today');
+  st.textContent = fmt(todayNet);
+  st.className = 'stat-value'+(todayNet>=settings.goalDay?' ok':todayNet>=settings.deadDay?' warn':todayNet<0?' bad':'');
 
   const sf = document.getElementById('s-final');
   sf.textContent = fmt(remain);
-  sf.className = 'stat-value' + (allTime >= GOAL_FINAL ? ' ok' : allTime > 0 ? ' warn' : ' bad');
-  document.getElementById('s-final-sub').textContent = '누적 ' + fmt(allTime);
-
-  document.getElementById('pb').style.width = pct + '%';
-  document.getElementById('pb-pct').textContent = pct.toFixed(2) + '%';
+  sf.className = 'stat-value'+(allTime>=settings.goalFinal?' ok':allTime>0?' warn':' bad');
+  document.getElementById('s-final-sub').textContent = '누적 '+fmt(allTime);
+  document.getElementById('pb').style.width = pct+'%';
+  document.getElementById('pb-pct').textContent = pct.toFixed(2)+'%';
+  document.getElementById('sub-goal-day').textContent = fmt(settings.goalDay);
+  document.getElementById('sub-goal-week').textContent = fmt(settings.goalWeek);
+  document.getElementById('sub-dead-week').textContent = fmt(settings.deadWeek);
 }
 
 function renderCalendar() {
   const wrap = document.getElementById('cal-wrap');
   wrap.innerHTML = '';
-
-  const days7 = ['일', '월', '화', '수', '목', '금', '토'];
-  days7.forEach((d, i) => {
+  ['일','월','화','수','목','금','토'].forEach((d,i) => {
     const h = document.createElement('div');
-    h.className = 'cal-header-cell' + (i === 0 ? ' sun' : i === 6 ? ' sat' : '');
-    h.textContent = d;
-    wrap.appendChild(h);
+    h.className = 'cal-header-cell'+(i===0?' sun':i===6?' sat':'');
+    h.textContent = d; wrap.appendChild(h);
   });
   const sh = document.createElement('div');
-  sh.className = 'cal-week-summary-header';
-  sh.textContent = '주간 요약';
-  wrap.appendChild(sh);
+  sh.className = 'cal-week-summary-header'; sh.textContent = '주간 요약'; wrap.appendChild(sh);
 
-  const firstDay = new Date(curY, curM, 1).getDay();
-  const daysInMonth = new Date(curY, curM + 1, 0).getDate();
+  const firstDay = new Date(curY,curM,1).getDay();
+  const daysInMonth = new Date(curY,curM+1,0).getDate();
   let cells = [];
-  for (let i = 0; i < firstDay; i++) cells.push(null);
-  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
-  while (cells.length % 7 !== 0) cells.push(null);
+  for (let i=0;i<firstDay;i++) cells.push(null);
+  for (let d=1;d<=daysInMonth;d++) cells.push(d);
+  while (cells.length%7!==0) cells.push(null);
 
-  const weeks = [];
-  for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7));
+  for (let wi=0;wi<cells.length;wi+=7) {
+    const week = cells.slice(wi,wi+7);
+    let weekNet=0, weekLoss=0, weekKey=null;
 
-  weeks.forEach(week => {
-    let weekTotal = 0, weekKey = null;
-
-    week.forEach((d, wi) => {
+    week.forEach((d,i) => {
       const cell = document.createElement('div');
-      if (d === null) { cell.className = 'day-cell empty'; wrap.appendChild(cell); return; }
-
-      const key = curY + '-' + (curM + 1).toString().padStart(2, '0') + '-' + d.toString().padStart(2, '0');
+      if (d===null) { cell.className='day-cell empty'; wrap.appendChild(cell); return; }
+      const key = curY+'-'+(curM+1).toString().padStart(2,'0')+'-'+d.toString().padStart(2,'0');
       if (!weekKey) weekKey = getWeekKey(key);
-      const profit = data[key] || 0;
-      weekTotal += profit;
+      const entry = data[key]||{};
+      const profit=entry.profit||0, loss=entry.loss||0, net=profit-loss, memo=entry.memo||'';
+      weekNet+=net; weekLoss+=loss;
 
-      const isToday = new Date(curY, curM, d).toDateString() === today.toDateString();
+      const isToday = new Date(curY,curM,d).toDateString()===today.toDateString();
       let cls = 'day-cell';
-      if (profit > 0) cls += profit >= GOAL_DAY ? ' pass' : profit >= DEAD_DAY ? ' dead' : ' fail';
-      if (isToday) cls += ' today';
+      if (profit>0||loss>0) {
+        if (net>=settings.goalDay) cls+=' pass';
+        else if (net>=settings.deadDay) cls+=' dead';
+        else if (net>=0&&profit>0) cls+=' fail';
+        else cls+=' loss-only';
+      }
+      if (isToday) cls+=' today';
       cell.className = cls;
 
       const numDiv = document.createElement('div');
-      numDiv.className = 'day-num' + (wi === 0 ? ' sun' : wi === 6 ? ' sat' : '') + (isToday ? ' today-dot' : '');
-      numDiv.textContent = d;
-      cell.appendChild(numDiv);
+      numDiv.className = 'day-num'+(i===0?' sun':i===6?' sat':'')+(isToday?' today-dot':'');
+      numDiv.textContent = d; cell.appendChild(numDiv);
 
-      if (profit > 0) {
-        const pDiv = document.createElement('div');
-        pDiv.className = 'day-profit';
-        pDiv.textContent = profit.toLocaleString() + '원';
-        cell.appendChild(pDiv);
-
-const sDiv = document.createElement('div');
-        if (profit >= GOAL_DAY) {
-          sDiv.className = 'day-status ok';
-          sDiv.textContent = '목표달성 ✓';
-        } else if (profit >= DEAD_DAY) {
-          sDiv.className = 'day-status mid';
-          sDiv.textContent = '목표 ' + Math.round((GOAL_DAY - profit) / 10000) + '만 부족';
+      if (profit>0||loss>0) {
+        if (profit>0&&loss>0) {
+          const nd = document.createElement('div');
+          nd.className = 'day-net '+(net>=0?'pos':'neg');
+          nd.textContent = (net>=0?'+':'')+fmt(net,false).replace('원','')+' 원'; cell.appendChild(nd);
+          const ld = document.createElement('div');
+          ld.className = 'day-loss'; ld.textContent = '-'+fmt(loss,false).replace('원','')+' 원'; cell.appendChild(ld);
+        } else if (profit>0) {
+          const pd = document.createElement('div');
+          pd.className = 'day-profit'; pd.textContent = fmt(profit,false).replace('원','')+' 원'; cell.appendChild(pd);
         } else {
-          sDiv.className = 'day-status bad';
-          sDiv.textContent = '최소 ' + Math.round((DEAD_DAY - profit) / 10000) + '만 부족';
+          const ld = document.createElement('div');
+          ld.className = 'day-loss'; ld.textContent = '-'+fmt(loss,false).replace('원','')+' 원'; cell.appendChild(ld);
         }
-        cell.appendChild(sDiv);
+        if (memo) { const md=document.createElement('div'); md.className='day-memo'; md.textContent=memo; cell.appendChild(md); }
+        const sd = document.createElement('div');
+        if (net>=settings.goalDay) { sd.className='day-status ok'; sd.textContent='목표달성 ✓'; }
+        else if (net>=settings.deadDay&&net>=0) { sd.className='day-status mid'; sd.textContent='목표 '+Math.round((settings.goalDay-net)/10000)+'만 부족'; }
+        else if (net>=0) { sd.className='day-status bad'; sd.textContent='최소 '+Math.round((settings.deadDay-net)/10000)+'만 부족'; }
+        else { sd.className='day-status bad'; sd.textContent='손실 '+fmt(Math.abs(net)); }
+        cell.appendChild(sd);
       } else {
-        const hint = document.createElement('div');
-        hint.className = 'day-hint';
-        hint.textContent = '탭하여 입력';
-        cell.appendChild(hint);
+        const hint=document.createElement('div'); hint.className='day-hint'; hint.textContent='탭하여 입력'; cell.appendChild(hint);
       }
-
-      cell.addEventListener('click', () => openModal(key, d));
+      cell.addEventListener('click', ()=>openModal(key,d));
       wrap.appendChild(cell);
     });
 
     const ws = document.createElement('div');
     ws.className = 'week-summary';
-    const wkPct = Math.min(100, weekTotal / GOAL_WEEK * 100);
-    const wkDPct = Math.min(100, weekTotal / DEAD_WEEK * 100);
-    const wkRemain = Math.max(0, GOAL_WEEK - weekTotal);
-    const fillCls = weekTotal >= GOAL_WEEK ? 'over' : 'target';
+    const wkPct = Math.min(100,weekNet/settings.goalWeek*100);
+    const wkDPct = Math.min(100,weekNet/settings.deadWeek*100);
+    const wkRemain = Math.max(0,settings.goalWeek-weekNet);
     ws.innerHTML = `
-      <div>
-        <div class="ws-total-label">주 누적 수익</div>
-        <div class="ws-total-val">${fmt(weekTotal)}</div>
+      <div><div class="ws-total-label">주 순수익</div>
+      <div class="ws-total-val ${weekNet>0?'pos':weekNet<0?'neg':'zero'}">${fmt(weekNet)}</div>
+      ${weekLoss>0?`<div class="ws-detail">손실 -${fmt(weekLoss)}</div>`:''}
       </div>
       <div class="ws-bar-wrap">
-        <div class="ws-bar-row">
-          <div class="ws-bar-label">목표</div>
-          <div class="ws-bar-track"><div class="ws-bar-fill ${fillCls}" style="width:${wkPct}%"></div></div>
-          <div class="ws-bar-pct">${Math.round(wkPct)}%</div>
-        </div>
-        <div class="ws-bar-row">
-          <div class="ws-bar-label">최소</div>
-          <div class="ws-bar-track"><div class="ws-bar-fill dead" style="width:${wkDPct}%"></div></div>
-          <div class="ws-bar-pct">${Math.round(wkDPct)}%</div>
-        </div>
+        <div class="ws-bar-row"><div class="ws-bar-label">목표</div><div class="ws-bar-track"><div class="ws-bar-fill ${weekNet>=settings.goalWeek?'over':'target'}" style="width:${Math.max(0,wkPct)}%"></div></div><div class="ws-bar-pct">${Math.max(0,Math.round(wkPct))}%</div></div>
+        <div class="ws-bar-row"><div class="ws-bar-label">최소</div><div class="ws-bar-track"><div class="ws-bar-fill dead-bar" style="width:${Math.max(0,wkDPct)}%"></div></div><div class="ws-bar-pct">${Math.max(0,Math.round(wkDPct))}%</div></div>
       </div>
-      <div class="ws-remain ${wkRemain === 0 ? 'ok' : ''}">${wkRemain > 0 ? '잔여 ' + fmt(wkRemain) : '🎯 주목표 달성!'}</div>
-    `;
+      <div class="ws-remain ${wkRemain===0?'ok':''}">${wkRemain>0?'잔여 '+fmt(wkRemain):'🎯 주목표 달성!'}</div>`;
     wrap.appendChild(ws);
-  });
-
+  }
   renderStats();
-  updateTitle();
+  document.getElementById('month-title').textContent = curY+'년 '+(curM+1)+'월';
 }
 
-function updateTitle() {
-  const months = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
-  document.getElementById('month-title').textContent = curY + '년 ' + months[curM];
+function renderMonthlyStats() {
+  document.getElementById('stats-month-title').textContent = statsY+'년 '+(statsM+1)+'월 통계';
+  const prefix = statsY+'-'+(statsM+1).toString().padStart(2,'0');
+  const entries = Object.entries(data).filter(([k])=>k.startsWith(prefix));
+  const daysInMonth = new Date(statsY,statsM+1,0).getDate();
+  let totalProfit=0,totalLoss=0,tradeDays=0,profitDays=0,lossDays=0,deadlineMiss=0;
+  entries.forEach(([,v]) => {
+    const net=netOf(v);
+    if (v.profit>0||v.loss>0) {
+      tradeDays++; totalProfit+=v.profit||0; totalLoss+=v.loss||0;
+      if (net>0) profitDays++; if (net<0) lossDays++;
+      if (net<settings.deadDay) deadlineMiss++;
+    }
+  });
+  const totalNet=totalProfit-totalLoss;
+  const avgDaily=tradeDays>0?Math.round(totalNet/tradeDays):0;
+  const winRate=tradeDays>0?Math.round(profitDays/tradeDays*100):0;
+  const goalRate=tradeDays>0?Math.round((tradeDays-deadlineMiss)/tradeDays*100):0;
+
+  const grid = document.getElementById('monthly-stats-grid');
+  grid.innerHTML = '';
+  [
+    { title:'수익/손실 요약', rows:[
+      {label:'총 수익', val:fmt(totalProfit), cls:'ok'},
+      {label:'총 손실', val:totalLoss>0?'-'+fmt(totalLoss):'0원', cls:totalLoss>0?'bad':''},
+      {label:'순수익', val:fmt(totalNet), cls:totalNet>=0?'ok':'bad'},
+      {label:'일 평균 순수익', val:fmt(avgDaily), cls:avgDaily>=settings.goalDay?'ok':avgDaily>=0?'warn':'bad'},
+    ]},
+    { title:'거래 현황', rows:[
+      {label:'거래일수', val:tradeDays+'일 / '+daysInMonth+'일', cls:''},
+      {label:'수익일', val:profitDays+'일', cls:'ok'},
+      {label:'손실일', val:lossDays+'일', cls:lossDays>0?'bad':''},
+      {label:'승률', val:winRate+'%', cls:winRate>=60?'ok':winRate>=40?'warn':'bad'},
+    ]},
+    { title:'목표 달성률', rows:[
+      {label:'데드라인 통과율', val:goalRate+'%', cls:goalRate>=80?'ok':goalRate>=50?'warn':'bad'},
+      {label:'데드라인 미달일', val:deadlineMiss+'일', cls:deadlineMiss>0?'bad':'ok'},
+      {label:'주 목표 기준', val:fmt(settings.goalWeek), cls:''},
+      {label:'월 누적', val:fmt(totalNet), cls:totalNet>=settings.goalWeek*4?'ok':totalNet>=0?'warn':'bad'},
+    ]},
+  ].forEach(card => {
+    const el = document.createElement('div');
+    el.className = 'monthly-stat-card';
+    el.innerHTML = `<div class="msc-title">${card.title}</div>`+card.rows.map(r=>`<div class="msc-row"><span class="msc-label">${r.label}</span><span class="msc-val ${r.cls}">${r.val}</span></div>`).join('');
+    grid.appendChild(el);
+  });
+}
+
+function renderHeatmap() {
+  document.getElementById('heatmap-year-title').textContent = heatmapY+'년';
+  const container = document.getElementById('heatmap-months');
+  container.innerHTML = '';
+  const monthNames=['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
+  const maxNet = Math.max(...Object.entries(data).filter(([k])=>k.startsWith(heatmapY+'-')).map(([,v])=>netOf(v)), settings.goalDay);
+  for (let m=0;m<12;m++) {
+    const mWrap = document.createElement('div'); mWrap.className='heatmap-month';
+    const label = document.createElement('div'); label.className='heatmap-month-label'; label.textContent=monthNames[m];
+    mWrap.appendChild(label);
+    const daysGrid = document.createElement('div'); daysGrid.className='heatmap-days';
+    const firstDay = new Date(heatmapY,m,1).getDay();
+    const dim = new Date(heatmapY,m+1,0).getDate();
+    for (let i=0;i<firstDay;i++) { const e=document.createElement('div'); e.className='heatmap-day empty'; daysGrid.appendChild(e); }
+    for (let d=1;d<=dim;d++) {
+      const key = heatmapY+'-'+(m+1).toString().padStart(2,'0')+'-'+d.toString().padStart(2,'0');
+      const entry = data[key];
+      const cell = document.createElement('div');
+      cell.title = key+(entry?' : '+fmt(netOf(entry)):'');
+      if (!entry||(entry.profit===0&&entry.loss===0)) cell.className='heatmap-day level-0';
+      else { const net=netOf(entry); if (net<0) cell.className='heatmap-day loss'; else { const r=net/maxNet; cell.className='heatmap-day level-'+(r<0.25?1:r<0.5?2:r<0.75?3:4); } }
+      cell.addEventListener('click',()=>{ switchTab('calendar'); curY=heatmapY; curM=m; renderCalendar(); setTimeout(()=>openModal(key,d),100); });
+      daysGrid.appendChild(cell);
+    }
+    mWrap.appendChild(daysGrid); container.appendChild(mWrap);
+  }
+}
+
+function loadSettingsUI() {
+  document.getElementById('set-goal-day').value = settings.goalDay;
+  document.getElementById('set-dead-day').value = settings.deadDay;
+  document.getElementById('set-goal-week').value = settings.goalWeek;
+  document.getElementById('set-dead-week').value = settings.deadWeek;
+  document.getElementById('set-goal-final').value = settings.goalFinal;
+}
+function saveSettings() {
+  settings.goalDay = parseInt(document.getElementById('set-goal-day').value)||1000000;
+  settings.deadDay = parseInt(document.getElementById('set-dead-day').value)||200000;
+  settings.goalWeek = parseInt(document.getElementById('set-goal-week').value)||5000000;
+  settings.deadWeek = parseInt(document.getElementById('set-dead-week').value)||3000000;
+  settings.goalFinal = parseInt(document.getElementById('set-goal-final').value)||100000000;
+  localStorage.setItem('cal-settings', JSON.stringify(settings));
+  renderCalendar(); showToast('설정이 저장되었습니다');
+}
+function loadSettingsFromStorage() {
+  try { const s=localStorage.getItem('cal-settings'); if(s) settings={...settings,...JSON.parse(s)}; } catch(e){}
+  loadSettingsUI();
 }
 
 let editingKey = null;
 function openModal(key, d) {
   editingKey = key;
-  const existing = data[key] || '';
-  const [y, m] = key.split('-');
-  const label = parseInt(m) + '월 ' + parseInt(key.split('-')[2]) + '일';
-
+  const entry = data[key]||{};
+  const [,m] = key.split('-');
+  const label = parseInt(m)+'월 '+parseInt(key.split('-')[2])+'일';
   const backdrop = document.createElement('div');
-  backdrop.className = 'modal-backdrop';
-  backdrop.id = 'modal-backdrop';
+  backdrop.className = 'modal-backdrop'; backdrop.id = 'modal-backdrop';
   backdrop.innerHTML = `
     <div class="modal">
-      <div class="modal-title">${label} 실현수익</div>
-      <div class="modal-sub">금액 입력 후 저장</div>
-      <div class="modal-targets">
-        <div class="modal-target-card">
-          <div class="modal-target-label">일 목표</div>
-          <div class="modal-target-val">100만원↑</div>
+      <div class="modal-title">${label}</div>
+      <div class="modal-sub">수익과 손실을 각각 입력하세요</div>
+      <div class="modal-row">
+        <div class="modal-field-group">
+          <div class="modal-field-label">수익 (원)</div>
+          <input type="number" id="input-profit" placeholder="0" value="${entry.profit||''}" step="10000" inputmode="numeric" />
         </div>
-        <div class="modal-target-card">
-          <div class="modal-target-label">일 데드라인</div>
-          <div class="modal-target-val">20만원↑</div>
+        <div class="modal-field-group">
+          <div class="modal-field-label">손실 (원)</div>
+          <input type="number" id="input-loss" placeholder="0" value="${entry.loss||''}" step="10000" inputmode="numeric" />
         </div>
       </div>
-      <input type="number" id="profit-input" placeholder="예: 1500000" value="${existing}" step="10000" inputmode="numeric" />
-      <div class="modal-hint">* 숫자만 입력 (단위: 원)</div>
-      <div class="modal-preview" id="modal-preview">
-        <span class="modal-preview-text" id="preview-text">${existing ? getPreviewText(Number(existing)) : '금액을 입력하세요'}</span>
+      <div class="modal-field-group" style="margin-bottom:10px">
+        <div class="modal-field-label">메모 (종목명 등)</div>
+        <textarea id="input-memo" placeholder="예: 삼성전자, TSLA">${entry.memo||''}</textarea>
+      </div>
+      <div class="modal-preview">
+        <span class="modal-preview-text" id="preview-text">${getPreviewText(entry.profit||0,entry.loss||0)}</span>
       </div>
       <div class="modal-btns">
-        ${existing ? '<button class="delete" onclick="handleDelete()">삭제</button>' : ''}
+        ${(entry.profit||entry.loss)?'<button class="delete" onclick="handleDelete()">삭제</button>':''}
         <button onclick="closeModal()">취소</button>
         <button class="confirm" onclick="handleSave()">저장</button>
       </div>
-    </div>
-  `;
+    </div>`;
   document.body.appendChild(backdrop);
-  backdrop.addEventListener('click', e => { if (e.target === backdrop) closeModal(); });
-
-  const input = document.getElementById('profit-input');
-  setTimeout(() => input.focus(), 50);
-  input.addEventListener('input', () => {
-    const v = Number(input.value);
-    const pt = document.getElementById('preview-text');
-    if (!input.value) { pt.textContent = '금액을 입력하세요'; pt.className = 'modal-preview-text'; return; }
-    pt.textContent = getPreviewText(v);
-    pt.className = 'modal-preview-text ' + (v >= GOAL_DAY ? 'ok' : v >= DEAD_DAY ? 'mid' : 'bad');
-  });
-  input.addEventListener('keydown', e => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') closeModal(); });
+  backdrop.addEventListener('click', e=>{ if(e.target===backdrop) closeModal(); });
+  const upd = ()=>{
+    const p=parseInt(document.getElementById('input-profit').value)||0;
+    const l=parseInt(document.getElementById('input-loss').value)||0;
+    const pt=document.getElementById('preview-text');
+    pt.textContent=getPreviewText(p,l);
+    const net=p-l;
+    pt.className='modal-preview-text '+(net>=settings.goalDay?'ok':net>=settings.deadDay?'mid':net<0?'loss':'bad');
+  };
+  setTimeout(()=>document.getElementById('input-profit').focus(),50);
+  document.getElementById('input-profit').addEventListener('input',upd);
+  document.getElementById('input-loss').addEventListener('input',upd);
 }
 
-function getPreviewText(v) {
-  if (!v) return '금액을 입력하세요';
-  const f = v.toLocaleString() + '원';
-  if (v >= GOAL_DAY) return f + ' → ✓ 일 목표 달성!';
-  if (v >= DEAD_DAY) return f + ' → 데드라인 통과 (' + Math.round((GOAL_DAY - v) / 10000) + '만원 부족)';
-  return f + ' → 데드라인 미달 (' + Math.round((DEAD_DAY - v) / 10000) + '만원 부족)';
+function getPreviewText(profit,loss) {
+  if (!profit&&!loss) return '금액을 입력하세요';
+  const net=profit-loss, f=fmt(net,false);
+  if (net>=settings.goalDay) return f+' → ✓ 일 목표 달성!';
+  if (net>=settings.deadDay) return f+' → 데드라인 통과 ('+Math.round((settings.goalDay-net)/10000)+'만 부족)';
+  if (net>=0) return f+' → 최소 '+Math.round((settings.deadDay-net)/10000)+'만 부족';
+  return '순손실 '+fmt(Math.abs(net))+' ('+fmt(profit)+' 수익, '+fmt(loss)+' 손실)';
 }
 
-function closeModal() {
-  const b = document.getElementById('modal-backdrop');
-  if (b) b.remove();
-  editingKey = null;
-}
+function closeModal() { const b=document.getElementById('modal-backdrop'); if(b)b.remove(); editingKey=null; }
 
 async function handleSave() {
-  const v = parseInt(document.getElementById('profit-input').value) || 0;
-  if (v <= 0) { showToast('금액을 입력해주세요'); return; }
-  const key = editingKey;
-  closeModal();
-  data[key] = v;
+  const profit=parseInt(document.getElementById('input-profit').value)||0;
+  const loss=parseInt(document.getElementById('input-loss').value)||0;
+  const memo=document.getElementById('input-memo').value.trim();
+  const key=editingKey; closeModal();
+  if (profit===0&&loss===0) { delete data[key]; } else { data[key]={profit,loss,memo}; }
   renderCalendar();
-  const ok = await upsertEntry(key, v);
-  showToast(ok ? '저장되었습니다' : '저장 실패 — 다시 시도해주세요');
-}
-async function handleDelete() {
-  const key = editingKey;
-  closeModal();
-  delete data[key];
-  renderCalendar();
-  const ok = await deleteEntry(key);
-  showToast(ok ? '삭제되었습니다' : '삭제 실패');
+  const ok=profit===0&&loss===0?await deleteEntryDB(key):await upsertEntry(key,profit,loss,memo);
+  showToast(ok?'저장되었습니다':'저장 실패 — 다시 시도해주세요');
 }
 
-function changeMonth(dir) {
-  curM += dir;
-  if (curM > 11) { curM = 0; curY++; }
-  if (curM < 0) { curM = 11; curY--; }
-  renderCalendar();
+async function handleDelete() {
+  const key=editingKey; closeModal(); delete data[key]; renderCalendar();
+  const ok=await deleteEntryDB(key); showToast(ok?'삭제되었습니다':'삭제 실패');
+}
+
+function changeMonth(dir) { curM+=dir; if(curM>11){curM=0;curY++;}if(curM<0){curM=11;curY--;} renderCalendar(); }
+function changeStatsMonth(dir) { statsM+=dir; if(statsM>11){statsM=0;statsY++;}if(statsM<0){statsM=11;statsY--;} renderMonthlyStats(); }
+function changeHeatmapYear(dir) { heatmapY+=dir; renderHeatmap(); }
+
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>{ b.className='tab-btn'+(['calendar','stats','heatmap','settings'][i]===name?' active':''); });
+  document.querySelectorAll('.tab-content').forEach(c=>c.className='tab-content');
+  document.getElementById('tab-'+name).className='tab-content active';
+  if(name==='stats') renderMonthlyStats();
+  if(name==='heatmap') renderHeatmap();
 }
 
 function showToast(msg) {
-  const t = document.createElement('div');
-  t.className = 'toast'; t.textContent = msg;
+  const t=document.createElement('div'); t.className='toast'; t.textContent=msg;
   document.body.appendChild(t);
-  setTimeout(() => t.style.opacity = '0', 2200);
-  setTimeout(() => t.remove(), 2500);
+  setTimeout(()=>t.style.opacity='0',2200); setTimeout(()=>t.remove(),2500);
+}
+
+function checkPassword() {
+  const val=document.getElementById('lock-input').value;
+  if (val===PASSWORD) {
+    sessionStorage.setItem(SESSION_KEY,'1');
+    document.getElementById('lock-screen').style.display='none';
+    startApp();
+  } else {
+    document.getElementById('lock-error').textContent='비밀번호가 틀렸습니다';
+    document.getElementById('lock-input').value='';
+    document.getElementById('lock-input').focus();
+    setTimeout(()=>document.getElementById('lock-error').textContent='',2000);
+  }
+}
+
+async function startApp() {
+  document.getElementById('loading').style.display='flex';
+  loadSettingsFromStorage();
+  try {
+    await Promise.race([loadAll(), new Promise((_,r)=>setTimeout(()=>r(new Error('timeout')),6000))]);
+  } catch(e) { setSyncStatus('err','연결 실패'); }
+  Object.keys(data).forEach(k=>{ if(typeof data[k]==='number') data[k]={profit:data[k],loss:0,memo:''}; });
+  document.getElementById('loading').style.display='none';
+  renderCalendar();
 }
 
 async function init() {
-  try {
-    await Promise.race([
-      loadAll(),
-      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 6000))
-    ]);
-  } catch(e) {
-    setSyncStatus('err', '연결 실패');
+  document.getElementById('lock-input').addEventListener('keydown', e=>{ if(e.key==='Enter') checkPassword(); });
+  if (sessionStorage.getItem(SESSION_KEY)==='1') {
+    document.getElementById('lock-screen').style.display='none';
+    startApp();
+  } else {
+    setTimeout(()=>document.getElementById('lock-input').focus(),100);
   }
-  document.getElementById('loading').style.display = 'none';
-  renderCalendar();
 }
 
 init();
