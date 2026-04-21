@@ -469,10 +469,17 @@ function renderCalendar() {
         pDiv.textContent = profit.toLocaleString() + '원';
         cell.appendChild(pDiv);
 
-        const sDiv = document.createElement('div');
-        if (profit >= GOAL_DAY) { sDiv.className = 'day-status ok'; sDiv.textContent = '목표달성 ✓'; }
-        else if (profit >= DEAD_DAY) { sDiv.className = 'day-status mid'; sDiv.textContent = '데드라인 ↑'; }
-        else { sDiv.className = 'day-status bad'; sDiv.textContent = '데드라인 ↓'; }
+const sDiv = document.createElement('div');
+        if (profit >= GOAL_DAY) {
+          sDiv.className = 'day-status ok';
+          sDiv.textContent = '목표달성 ✓';
+        } else if (profit >= DEAD_DAY) {
+          sDiv.className = 'day-status mid';
+          sDiv.textContent = '목표 ' + Math.round((GOAL_DAY - profit) / 10000) + '만 부족';
+        } else {
+          sDiv.className = 'day-status bad';
+          sDiv.textContent = '최소 ' + Math.round((DEAD_DAY - profit) / 10000) + '만 부족';
+        }
         cell.appendChild(sDiv);
       } else {
         const hint = document.createElement('div');
