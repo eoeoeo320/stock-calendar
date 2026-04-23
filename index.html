@@ -237,6 +237,7 @@ body { min-height: 100vh; padding: 20px 16px 60px; max-width: 1060px; margin: 0 
   <button class="tab-btn" onclick="switchTab('stats')">월별 통계</button>
   <button class="tab-btn" onclick="switchTab('heatmap')">연간 히트맵</button>
   <button class="tab-btn" onclick="switchTab('settings')">목표 설정</button>
+<button class="tab-btn" onclick="switchTab('calc')">손익 계산기</button>
 </div>
 
 <div class="tab-content active" id="tab-calendar">
@@ -313,6 +314,58 @@ body { min-height: 100vh; padding: 20px 16px 60px; max-width: 1060px; margin: 0 
 </div>
 
 <div class="tab-content" id="tab-settings">
+  <div class="tab-content" id="tab-calc">
+  <div class="settings-wrap" style="max-width:500px">
+    <div class="settings-title">📊 손익 계산기</div>
+
+    <div class="settings-row">
+      <div><div class="settings-label">평균 단가</div><div class="settings-sub">매수한 평균 가격</div></div>
+      <input class="settings-input" id="calc-avg" type="number" placeholder="0" oninput="calcPnl()" step="1">
+    </div>
+    <div class="settings-row">
+      <div><div class="settings-label">보유 수량</div><div class="settings-sub">현재 보유 주식 수</div></div>
+      <input class="settings-input" id="calc-qty" type="number" placeholder="0" oninput="calcPnl()" step="1">
+    </div>
+    <div class="settings-row">
+      <div><div class="settings-label">목표 매도가</div><div class="settings-sub">팔려는 가격</div></div>
+      <input class="settings-input" id="calc-sell" type="number" placeholder="0" oninput="calcPnl()" step="1">
+    </div>
+    <div class="settings-row">
+      <div><div class="settings-label">매도 수량</div><div class="settings-sub">비워두면 전량 매도</div></div>
+      <input class="settings-input" id="calc-sell-qty" type="number" placeholder="전량" oninput="calcPnl()" step="1">
+    </div>
+    <div class="settings-row">
+      <div><div class="settings-label">수수료율</div><div class="settings-sub">토스증권 기본 0.1%</div></div>
+      <input class="settings-input" id="calc-fee" type="number" placeholder="0.1" value="0.1" oninput="calcPnl()" step="0.01">
+    </div>
+
+    <div id="calc-result" style="margin-top:16px;display:none">
+      <div style="background:var(--surface2);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)">
+          <span style="font-size:12px;color:var(--text2)">매수 총액</span>
+          <span class="msc-val" id="r-buy-total" style="font-family:var(--mono);font-size:13px;font-weight:500"></span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)">
+          <span style="font-size:12px;color:var(--text2)">매도 총액</span>
+          <span class="msc-val" id="r-sell-total" style="font-family:var(--mono);font-size:13px;font-weight:500"></span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)">
+          <span style="font-size:12px;color:var(--text2)">수수료 + 세금</span>
+          <span class="msc-val bad" id="r-fee" style="font-family:var(--mono);font-size:13px;font-weight:500"></span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0">
+          <span style="font-size:14px;font-weight:700">실현 손익</span>
+          <span id="r-pnl" style="font-family:var(--mono);font-size:18px;font-weight:700"></span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0">
+          <span style="font-size:12px;color:var(--text2)">수익률</span>
+          <span id="r-rate" style="font-family:var(--mono);font-size:13px;font-weight:500"></span>
+        </div>
+        <div id="r-goal-msg" style="font-size:12px;color:var(--text2);padding-top:6px;border-top:1px solid var(--border)"></div>
+      </div>
+    </div>
+  </div>
+</div>
   <div class="settings-wrap">
     <div class="settings-title">목표 금액 설정</div>
     <div class="settings-row">
@@ -739,7 +792,7 @@ function changeStatsMonth(dir) { statsM+=dir; if(statsM>11){statsM=0;statsY++;}i
 function changeHeatmapYear(dir) { heatmapY+=dir; renderHeatmap(); }
 
 function switchTab(name) {
-  document.querySelectorAll('.tab-btn').forEach((b,i)=>{ b.className='tab-btn'+(['calendar','stats','heatmap','settings'][i]===name?' active':''); });
+document.querySelectorAll('.tab-btn').forEach((b,i)=>{ b.className='tab-btn'+(['calendar','stats','heatmap','settings','calc'][i]===name?' active':''); });
   document.querySelectorAll('.tab-content').forEach(c=>c.className='tab-content');
   document.getElementById('tab-'+name).className='tab-content active';
   if(name==='stats') renderMonthlyStats();
@@ -753,6 +806,42 @@ function showToast(msg) {
 }
 
 function checkPassword() {
+  function calcPnl() {
+  const avg = parseFloat(document.getElementById('calc-avg').value)||0;
+  const qty = parseFloat(document.getElementById('calc-qty').value)||0;
+  const sell = parseFloat(document.getElementById('calc-sell').value)||0;
+  const sellQtyInput = parseFloat(document.getElementById('calc-sell-qty').value);
+  const sellQty = isNaN(sellQtyInput) ? qty : sellQtyInput;
+  const feeRate = (parseFloat(document.getElementById('calc-fee').value)||0.1) / 100;
+
+  if (!avg || !qty || !sell) { document.getElementById('calc-result').style.display='none'; return; }
+
+  const buyTotal = avg * sellQty;
+  const sellTotal = sell * sellQty;
+  // 매도 수수료 + 증권거래세 0.18%
+  const fee = Math.round(sellTotal * feeRate + sellTotal * 0.0018);
+  const pnl = Math.round(sellTotal - buyTotal - fee);
+  const rate = ((pnl / buyTotal) * 100).toFixed(2);
+
+  document.getElementById('calc-result').style.display='block';
+  document.getElementById('r-buy-total').textContent = buyTotal.toLocaleString()+'원';
+  document.getElementById('r-sell-total').textContent = sellTotal.toLocaleString()+'원';
+  document.getElementById('r-fee').textContent = '-'+fee.toLocaleString()+'원';
+
+  const pnlEl = document.getElementById('r-pnl');
+  pnlEl.textContent = (pnl>=0?'+':'')+pnl.toLocaleString()+'원';
+  pnlEl.style.color = pnl>=0?'var(--green)':'var(--red)';
+
+  const rateEl = document.getElementById('r-rate');
+  rateEl.textContent = (pnl>=0?'+':'')+rate+'%';
+  rateEl.style.color = pnl>=0?'var(--green)':'var(--red)';
+
+  const goalMsg = document.getElementById('r-goal-msg');
+  if (pnl>=settings.goalDay) goalMsg.innerHTML = '✅ <span style="color:var(--green)">일 목표 달성 금액이에요!</span>';
+  else if (pnl>=settings.deadDay) goalMsg.innerHTML = '🔵 데드라인 통과 — 목표까지 <b>'+Math.round((settings.goalDay-pnl)/10000)+'만원</b> 부족';
+  else if (pnl>=0) goalMsg.innerHTML = '⚠️ 데드라인까지 <b>'+Math.round((settings.deadDay-pnl)/10000)+'만원</b> 부족';
+  else goalMsg.innerHTML = '🔴 <span style="color:var(--red)">손실 구간이에요</span>';
+}
   const val=document.getElementById('lock-input').value;
   if (val===PASSWORD) {
     sessionStorage.setItem(SESSION_KEY,'1');
